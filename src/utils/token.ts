@@ -4,8 +4,8 @@ import jwt, { SignOptions, JwtPayload } from "jsonwebtoken";
 import { JWT_EXPIRY_TIME, JWT_SIGNING_ALGO } from "../config/tokenConfig";
 
 export const createToken = (id: string): string => {
-  let privateKey = fs.readFileSync("../secrets/id_rsa");
-  
+  let privateKey = fs.readFileSync(__dirname + "/../secrets/private_key.pem");
+
   let payload: JwtPayload = { 
     sub: id
   };
