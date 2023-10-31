@@ -1,4 +1,4 @@
-import { Pool, PoolConfig } from "pg";
+import { Pool, PoolConfig, PoolClient } from "pg";
 
 const poolConfig: PoolConfig = {
   user: process.env.PGUSER, // default process.env.PGUSER || process.env.USER
@@ -11,4 +11,9 @@ const poolConfig: PoolConfig = {
 
 const pool = new Pool(poolConfig);
 
-export default pool;
+const getConnection = async (): Promise<PoolClient> => {
+  console.log(poolConfig);
+  return await pool.connect();
+};
+
+export default getConnection;
