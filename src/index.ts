@@ -1,12 +1,12 @@
 import express from "express";
 import { config } from "dotenv";
-import fs from "fs";
-
-import authRoutes from "./routes/authRoutes";
-import dbRoutes from "./routes/dbRoutes";
 
 // Load up .env file
 config({ path: __dirname + "/../.env" });
+
+// Routes
+import authRoutes from "./routes/authRoutes";
+import dbRoutes from "./routes/dbRoutes";
 
 const app = express();
 const port = 3000;

@@ -9,7 +9,7 @@ export const setupUsersDB = async (req: Request, res: Response) => {
       email text NOT NULL, 
       sessionlife integer NOT NULL
     );
-  `
+  `;
 
   let client: PoolClient = await getConnection();
 

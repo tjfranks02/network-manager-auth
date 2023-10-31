@@ -12,7 +12,6 @@ const poolConfig: PoolConfig = {
 const pool = new Pool(poolConfig);
 
 const getConnection = async (): Promise<PoolClient> => {
-  console.log(poolConfig);
   return await pool.connect();
 };
 
