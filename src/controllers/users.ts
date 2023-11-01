@@ -40,7 +40,7 @@ export const signUp = async (req: Request, res: Response) => {
     return handlePostgresError(e, res);
   }
 
-  return res.status(200).json({ token: createToken(userId) });  
+  return res.status(200).json({ token: createToken(userId) });
 };
 
 export const signIn = (req: Request, res: Response) => { 
