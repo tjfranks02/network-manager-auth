@@ -5,10 +5,10 @@ import { PoolClient } from "pg";
 export const setupUsersDB = async (req: Request, res: Response) => {
   const createUsersTable = `
     CREATE TABLE users(
-      userId UUID NOT NULL,
+      id UUID NOT NULL PRIMARY KEY,
       email text NOT NULL, 
-      sessionlife integer NOT NULL
-    );
+      password text NOT NULL
+    )
   `;
 
   let client: PoolClient = await getConnection();
