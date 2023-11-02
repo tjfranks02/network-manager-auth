@@ -97,5 +97,26 @@ export const signIn = async (req: Request, res: Response) => {
 };
 
 export const getUserById = (req: Request, res: Response) => {
+  let id: string = req.params.id;
+  let authHeader: string | undefined = req.get("Authorization");
 
+  if (!authHeader) {
+    return res.status(401).send({ error: "You must be logged in" });
+  }
+
+  if (!id) {
+    return res.status(422).send({ error: "You must provide a user id" });
+  }
+
+  // Extract and decode token
+  let token = authHeader.split(" ")[1];
+
+  
+
+  try {
+
+    return res.status(200).send({ message: "Success!" });
+  } catch (e) {
+    return handlePostgresError(e, res);
+  }
 };
