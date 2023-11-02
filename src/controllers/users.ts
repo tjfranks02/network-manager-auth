@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { PoolClient, QueryResult } from "pg";
 import { v4 as uuid } from "uuid";
 
-import { createToken } from "../utils/token";
+import { createToken, hashPassword } from "../utils/token";
 import getConnection from "../services/db/connection";
 import { handlePostgresError } from "../utils/pgErrorHandlers";
 
@@ -32,9 +32,11 @@ export const signUp = async (req: Request, res: Response) => {
   let userId = uuid();
   
   try {
+    let hashedPassword = await hashPassword(password);
+
     await connection.query(
       "INSERT INTO users (id, email, password) VALUES ($1, $2, $3)", 
-      [userId, email, password]
+      [userId, email, hashedPassword]
     );
   } catch (e) {
     return handlePostgresError(e, res);
