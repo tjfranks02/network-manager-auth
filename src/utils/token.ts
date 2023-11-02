@@ -1,6 +1,7 @@
 import fs from "fs";
 import bcrypt from "bcrypt";
-import jwt, { SignOptions, JwtPayload } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
+import type  { SignOptions, JwtPayload } from "jsonwebtoken";
 
 import { JWT_EXPIRY_TIME, JWT_SIGNING_ALGO } from "../config/tokenConfig";
 
@@ -66,6 +67,26 @@ export const hashPassword = async (password: string): Promise<string> => {
   return hash;
 };
 
-export const verifyPassword = async (password: string, hash: string) => {
+/**
+ * Verify that a plaintext password matches a hash. Used for comparing the database entry for a user
+ * with the password provided by the user when signing in.
+ * 
+ * Params:
+ *   password - the plaintext password to verify.
+ *   hash - the hash to compare the password to.
+ * 
+ * Returns:
+ *   A promise that resolves to true if the password matches the hash, and false otherwise.
+ */
+export const verifyPassword = async (password: string, hash: string): Promise<boolean> => {
   return await bcrypt.compare(password, hash);
+};
+
+export const decodeJWT = (token: string) => {
+  let decodedToken: string | JwtPayload = jwt.verify(
+    token, getJWTPublicKey(), getJWTSigningOptions()
+  );
+  console.log(decodedToken);
+  console.log("-------------------------------");
+  return decodedToken;
 };

@@ -1,4 +1,6 @@
-import { Pool, PoolConfig, PoolClient } from "pg";
+import { Pool } from "pg";
+
+import type { PoolClient, PoolConfig } from "pg";
 
 const poolConfig: PoolConfig = {
   user: process.env.PGUSER, // default process.env.PGUSER || process.env.USER

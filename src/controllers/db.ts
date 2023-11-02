@@ -1,6 +1,7 @@
-import { Request, Response } from "express";
 import getConnection from "../services/db/connection";
-import { PoolClient } from "pg";
+
+import type { Request, Response } from "express";
+import type { PoolClient } from "pg";
 
 export const setupUsersDB = async (req: Request, res: Response) => {
   const createUsersTable = `

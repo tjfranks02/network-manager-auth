@@ -1,10 +1,11 @@
-import { Request, Response } from "express";
-import { PoolClient, QueryResult } from "pg";
 import { v4 as uuid } from "uuid";
-
-import { createToken, hashPassword, verifyPassword } from "../utils/token";
+import { createToken, hashPassword, verifyPassword, decodeJWT } from "../utils/token";
 import getConnection from "../services/db/connection";
 import { handlePostgresError } from "../utils/pgErrorHandlers";
+
+import type { JwtPayload } from "jsonwebtoken";
+import type { PoolClient, QueryResult } from "pg";
+import type { Request, Response } from "express";
 
 /**
  * Create an account for a new user with an email and password.
@@ -96,6 +97,20 @@ export const signIn = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Get a user's information with their ID.
+ * 
+ * Request params:
+ *   id: string - the ID of the user to get
+ * 
+ * Request headers:
+ *   Authorization: string - the JWT token of the user making the request.
+ *
+ * Response:
+ *   200 - Success, return the user's information
+ *   401 - Unauthorized, the user is not logged in
+ *   422 - Unprocessable Entity, the request is missing a required parameter  
+ */
 export const getUserById = (req: Request, res: Response) => {
   let id: string = req.params.id;
   let authHeader: string | undefined = req.get("Authorization");
@@ -110,8 +125,7 @@ export const getUserById = (req: Request, res: Response) => {
 
   // Extract and decode token
   let token = authHeader.split(" ")[1];
-
-  
+  let decodedToken: string | JwtPayload = decodeJWT(token);
 
   try {
 

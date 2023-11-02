@@ -1,5 +1,7 @@
-import { Router, Request, Response } from "express";
+import { Router } from "express";
 import { setupUsersDB } from "../controllers/db";
+
+import type { Request, Response } from "express";
 
 let router = Router();
 

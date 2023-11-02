@@ -1,4 +1,4 @@
-import { Response } from "express";
+import type { Response } from "express";
 
 const DUPLICATE_KEY_ERROR = "23505";
 
