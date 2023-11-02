@@ -143,7 +143,8 @@ export const getUserById = async (req: Request, res: Response) => {
     if (existingUserRes.rows.length === 0) {
       return res.status(422).json({ error: "User not found" });
     }
-
+    
+    connection.release();
     return res.status(200).send(existingUserRes.rows[0]);
   } catch (e) {
     return handlePostgresError(e, res);
