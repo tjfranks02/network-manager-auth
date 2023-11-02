@@ -1,12 +1,12 @@
 import fs from "fs";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import type  { SignOptions, JwtPayload } from "jsonwebtoken";
+import type  { SignOptions, JwtPayload, VerifyOptions } from "jsonwebtoken";
 
 import { JWT_EXPIRY_TIME, JWT_SIGNING_ALGO } from "../config/tokenConfig";
 
 /**
- * Get the options used to sign and verify JWT tokens.
+ * Get the options used to sign JWT tokens.
  */
 const getJWTSigningOptions = (): SignOptions => {
   let signingOptions: SignOptions = {
@@ -16,6 +16,18 @@ const getJWTSigningOptions = (): SignOptions => {
 
   return signingOptions;
 };
+
+/**
+ * Get the options used to verify JWT tokens.
+ */
+const getJWTVerifyOptions = (): VerifyOptions => {
+  let verifyOptions: VerifyOptions = {
+    algorithms: [JWT_SIGNING_ALGO],
+    maxAge: JWT_EXPIRY_TIME
+  };
+
+  return verifyOptions;
+};  
 
 /**
  * Get the private key used to sign JWT tokens.
@@ -82,11 +94,22 @@ export const verifyPassword = async (password: string, hash: string): Promise<bo
   return await bcrypt.compare(password, hash);
 };
 
+/**
+ * Decode a JWT token.
+ * 
+ * Params:
+ *   token - the JWT token to decode.
+ * 
+ * Returns:
+ *   The decoded token, or null if the token is invalid.
+ */
 export const decodeJWT = (token: string) => {
-  let decodedToken: string | JwtPayload = jwt.verify(
-    token, getJWTPublicKey(), getJWTSigningOptions()
-  );
-  console.log(decodedToken);
-  console.log("-------------------------------");
-  return decodedToken;
+  try {
+    let decodedToken: string | JwtPayload = jwt.verify(
+      token, getJWTPublicKey(), getJWTVerifyOptions(), 
+    );
+    return decodedToken;
+  } catch (e) {
+    return null;
+  }
 };

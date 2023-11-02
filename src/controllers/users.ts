@@ -50,6 +50,7 @@ export const signUp = async (req: Request, res: Response) => {
 
     return res.status(200).json({ token: createToken(userId) });
   } catch (e) {
+    console.log(e);
     return handlePostgresError(e, res);
   }
 };
@@ -111,7 +112,7 @@ export const signIn = async (req: Request, res: Response) => {
  *   401 - Unauthorized, the user is not logged in
  *   422 - Unprocessable Entity, the request is missing a required parameter  
  */
-export const getUserById = (req: Request, res: Response) => {
+export const getUserById = async (req: Request, res: Response) => {
   let id: string = req.params.id;
   let authHeader: string | undefined = req.get("Authorization");
 
@@ -125,11 +126,25 @@ export const getUserById = (req: Request, res: Response) => {
 
   // Extract and decode token
   let token = authHeader.split(" ")[1];
-  let decodedToken: string | JwtPayload = decodeJWT(token);
+  let decodedToken: string | JwtPayload | null = decodeJWT(token);
+
+  if (!decodedToken || id !== decodedToken.sub) {
+    return res.status(401).send({ error: "You must be logged in" });
+  }
 
   try {
+    // Check if user with id exists
+    let connection: PoolClient = await getConnection();
+    let existingUserRes: QueryResult = await connection.query(
+      "SELECT id, email FROM users WHERE id = $1", 
+      [id]
+    );
 
-    return res.status(200).send({ message: "Success!" });
+    if (existingUserRes.rows.length === 0) {
+      return res.status(422).json({ error: "User not found" });
+    }
+
+    return res.status(200).send(existingUserRes.rows[0]);
   } catch (e) {
     return handlePostgresError(e, res);
   }
