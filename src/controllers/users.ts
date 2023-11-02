@@ -7,7 +7,13 @@ import getConnection from "../services/db/connection";
 import { handlePostgresError } from "../utils/pgErrorHandlers";
 
 /**
- * Create an account for a new user with an email and password
+ * Create an account for a new user with an email and password.
+ * 
+ * If the user already exists, return an error.
+ * 
+ * Request params:
+ *   email: string - the email of the user to create
+ *   password: string - the password of the user to create
  */
 export const signUp = async (req: Request, res: Response) => {
   let email: string | null = req.body.email;
@@ -47,6 +53,13 @@ export const signUp = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Sign in a user with an email and password.
+ * 
+ * Request params:
+ *   email: string - the email of the user to sign in
+ *   password: string - the password of the user to sign in
+ */
 export const signIn = async (req: Request, res: Response) => { 
   let email: string = req.body.email;
   let password: string = req.body.password;
