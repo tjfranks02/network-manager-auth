@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import type  { SignOptions, JwtPayload, VerifyOptions, Jwt } from "jsonwebtoken";
 
-import { JWT_EXPIRY_TIME, JWT_SIGNING_ALGO } from "../config/tokenConfig";
+import { JWT_EXPIRY_TIME, JWT_SIGNING_ALGO, REFRESH_TOKEN_EXPIRY_TIME } from "../config/tokenConfig";
 
 /**
  * Get the options used to sign JWT tokens.
@@ -95,6 +95,27 @@ export const createToken = (id: string): string => {
   };
 
   return jwt.sign(payload, getJWTSigningKey(1), getJWTSigningOptions());
+};
+
+/**
+ * Generate JWT with a 7-day expiry time to act as a refresh token.
+ * 
+ * Params:
+ *   id - the ID of the user to create a refresh token for.
+ * 
+ * Returns:
+ *   string - the refresh token.
+ */
+export const createRefreshToken = (id: string): string => {
+  let payload: JwtPayload = { 
+    sub: id
+  };
+
+  return jwt.sign(
+    payload, 
+    getJWTSigningKey(1), 
+    {...getJWTSigningOptions(), expiresIn: REFRESH_TOKEN_EXPIRY_TIME}
+  );
 };
 
 /**

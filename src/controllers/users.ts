@@ -1,5 +1,5 @@
 import { v4 as uuid } from "uuid";
-import { createToken, hashPassword, verifyPassword, decodeJWT } from "../utils/token";
+import { createToken, hashPassword, verifyPassword, decodeJWT, createRefreshToken } from "../utils/token";
 import getConnection from "../services/db/connection";
 import { handlePostgresError } from "../utils/pgErrorHandlers";
 
@@ -48,7 +48,10 @@ export const signUp = async (req: Request, res: Response) => {
 
     connection.release();
 
-    return res.status(200).json({ token: createToken(userId) });
+    return res.status(200).json({ 
+      token: createToken(userId), 
+      refreshToken: createRefreshToken(userId) 
+    });
   } catch (e) {
     return handlePostgresError(e, res);
   }
@@ -91,7 +94,11 @@ export const signIn = async (req: Request, res: Response) => {
     }
 
     connection.release();
-    return res.status(200).json({ token: createToken(user.id) });
+
+    return res.status(200).json({ 
+      token: createToken(user.id), 
+      refreshToken: createRefreshToken(user.id) 
+    });
   } catch (e) {
     return handlePostgresError(e, res);
   }
@@ -147,5 +154,37 @@ export const getUserById = async (req: Request, res: Response) => {
     return res.status(200).send(existingUserRes.rows[0]);
   } catch (e) {
     return handlePostgresError(e, res);
+  }
+};
+
+/**
+ * Refresh a user's JWT token.
+ * 
+ * Request headers:
+ *   Authorization: string - the JWT token of the user making the request.
+ * 
+ * Response:
+ *   200 - Success, return the new JWT token
+ *   401 - Unauthorized, the user is not logged in
+ */
+export const refreshToken = async (req: Request, res: Response) => {
+  let authHeader: string | undefined = req.get("Authorization");
+
+  if (!authHeader) {
+    return res.status(401).send({ error: "You must be logged in" });
+  }
+
+  let token = authHeader.split(" ")[1];
+
+  try {
+    let decodedToken: JwtPayload | null = decodeJWT(token);
+
+    if (!decodedToken) {
+      return res.status(401).send({ error: "You must be logged in" });
+    }
+
+    return res.status(200).json({ token: createToken(decodedToken.payload.sub) });
+  } catch (e) {
+    return res.status(401).send({ error: "You must be logged in" });
   }
 };
