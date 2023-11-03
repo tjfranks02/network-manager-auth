@@ -1,5 +1,6 @@
 import { v4 as uuid } from "uuid";
-import { createToken, hashPassword, verifyPassword, decodeJWT, createRefreshToken } from "../utils/token";
+import { createToken, decodeJWT, createRefreshToken } from "../utils/jwt";
+import { hashPassword, verifyPassword } from "../utils/password";
 import getConnection from "../services/db/connection";
 import { handlePostgresError } from "../utils/pgErrorHandlers";
 
