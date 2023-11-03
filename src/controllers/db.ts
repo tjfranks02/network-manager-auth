@@ -1,11 +1,10 @@
-import { create } from "domain";
 import getConnection from "../services/db/connection";
 
 import type { Request, Response } from "express";
 import type { PoolClient } from "pg";
 import { randomUUID } from "crypto";
 
-export const setupUsersDB = async (req: Request, res: Response) => {
+export const setupDB = async (req: Request, res: Response) => {
   const createUsersTable = `
     CREATE TABLE users(
       id UUID NOT NULL PRIMARY KEY,
@@ -33,4 +32,15 @@ export const setupUsersDB = async (req: Request, res: Response) => {
   client.release();
 
   return res.status(200).json({ message: "DB setup successful!" })
+};  
+
+export const deleteDB = async (req: Request, res: Response) => {
+  const dropUsersTable = `DROP TABLE users`;
+  const dropRefreshTokensTable = `DROP TABLE refresh_tokens`;
+
+  let client: PoolClient = await getConnection();
+  await client.query(dropUsersTable);
+  await client.query(dropRefreshTokensTable);
+
+  return res.status(200).send({ message: "DB deleted successfully!" });
 };  
