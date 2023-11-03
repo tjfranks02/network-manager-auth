@@ -54,7 +54,6 @@ export const signUp = async (req: Request, res: Response) => {
       refreshToken: refreshToken
     });
   } catch (e) {
-    console.log(e); 
     return handlePostgresError(e, res);
   }
 };
@@ -90,11 +89,16 @@ export const signIn = async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Invalid password" });
     }
 
+    let accessToken: string = createToken(user.id);
+    let refreshToken: string = createRefreshToken(user.id);
+
+    await insertRefreshToken(connection, refreshToken, user.id);
+
     connection.release();
 
     return res.status(200).json({ 
-      token: createToken(user.id), 
-      refreshToken: createRefreshToken(user.id) 
+      token: accessToken, 
+      refreshToken: refreshToken
     });
   } catch (e) {
     return handlePostgresError(e, res);
