@@ -31,17 +31,29 @@ const getJWTVerifyOptions = (): VerifyOptions => {
 
 /**
  * Get the private key used to sign JWT tokens.
+ * 
+ * Params:
+ *   privKeyId - the ID of the private key to get. Might change in case of key rotation.
+ * 
+ * Returns:
+ *   The private key.
  */
-const getJWTSigningKey = (): Buffer => {
-  let privateKey = fs.readFileSync(__dirname + "/../secrets/private_key.pem"); 
+const getJWTSigningKey = (privKeyId: number): Buffer => {
+  let privateKey = fs.readFileSync(__dirname + `/../secrets/${privKeyId}_private_key.pem`); 
   return privateKey;
 };
 
 /**
  * Get the public key used to verify JWT tokens.
+ * 
+ * Params:
+ *   pubKeyId - the ID of the public key to get. Might change in case of key rotation.
+ * 
+ * Returns:
+ *   The public key.
  */
-const getJWTPublicKey = (): Buffer => {
-  let publicKey = fs.readFileSync(__dirname + "/../secrets/public_key.pem"); 
+const getJWTPublicKey = (pubKeyId: number): Buffer => {
+  let publicKey = fs.readFileSync(__dirname + `/../secrets/${pubKeyId}_key.pem`); 
   return publicKey;
 };  
 
@@ -56,10 +68,11 @@ const getJWTPublicKey = (): Buffer => {
  */
 export const createToken = (id: string): string => {
   let payload: JwtPayload = { 
-    sub: id
+    sub: id,
+    pubKeyId: 1
   };
 
-  return jwt.sign(payload, getJWTSigningKey(), getJWTSigningOptions());
+  return jwt.sign(payload, getJWTSigningKey(1), getJWTSigningOptions());
 };
 
 /**
@@ -106,7 +119,7 @@ export const verifyPassword = async (password: string, hash: string): Promise<bo
 export const decodeJWT = (token: string) => {
   try {
     let decodedToken: string | JwtPayload = jwt.verify(
-      token, getJWTPublicKey(), getJWTVerifyOptions(), 
+      token, getJWTPublicKey(1), getJWTVerifyOptions(), 
     );
     return decodedToken;
   } catch (e) {
