@@ -50,7 +50,6 @@ export const signUp = async (req: Request, res: Response) => {
 
     return res.status(200).json({ token: createToken(userId) });
   } catch (e) {
-    console.log(e);
     return handlePostgresError(e, res);
   }
 };
@@ -126,9 +125,9 @@ export const getUserById = async (req: Request, res: Response) => {
 
   // Extract and decode token
   let token = authHeader.split(" ")[1];
-  let decodedToken: string | JwtPayload | null = decodeJWT(token);
+  let decodedToken: JwtPayload | null = decodeJWT(token);
 
-  if (!decodedToken || id !== decodedToken.sub) {
+  if (!decodedToken || id !== decodedToken.payload.sub) {
     return res.status(401).send({ error: "You must be logged in" });
   }
 

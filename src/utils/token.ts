@@ -1,7 +1,7 @@
 import fs from "fs";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import type  { SignOptions, JwtPayload, VerifyOptions } from "jsonwebtoken";
+import type  { SignOptions, JwtPayload, VerifyOptions, Jwt } from "jsonwebtoken";
 
 import { JWT_EXPIRY_TIME, JWT_SIGNING_ALGO } from "../config/tokenConfig";
 
@@ -11,7 +11,11 @@ import { JWT_EXPIRY_TIME, JWT_SIGNING_ALGO } from "../config/tokenConfig";
 const getJWTSigningOptions = (): SignOptions => {
   let signingOptions: SignOptions = {
     algorithm: JWT_SIGNING_ALGO,
-    expiresIn: JWT_EXPIRY_TIME
+    expiresIn: JWT_EXPIRY_TIME,
+    header: {
+      alg: "RS256",
+      kid: "1"
+    }
   };
 
   return signingOptions;
@@ -23,7 +27,8 @@ const getJWTSigningOptions = (): SignOptions => {
 const getJWTVerifyOptions = (): VerifyOptions => {
   let verifyOptions: VerifyOptions = {
     algorithms: [JWT_SIGNING_ALGO],
-    maxAge: JWT_EXPIRY_TIME
+    maxAge: JWT_EXPIRY_TIME,
+    complete: true
   };
 
   return verifyOptions;
@@ -44,17 +49,35 @@ const getJWTSigningKey = (privKeyId: number): Buffer => {
 };
 
 /**
+ * Get the KID claim from the header of a given JWT. 
+ * 
+ * Params:
+ *   token - the JWT token to get the KID claim from.
+ *   
+ * Returns:
+ *   The KID claim, or null if the token is invalid.
+ */
+const getKIDClaim = (token: string): string | null => {
+  let decodedToken: Jwt | null = jwt.decode(token, { complete: true });
+  let kid = decodedToken ? decodedToken.header.kid : null;
+  return kid ? kid : null;
+};  
+
+/**
  * Get the public key used to verify JWT tokens.
  * 
  * Params:
- *   pubKeyId - the ID of the public key to get. Might change in case of key rotation.
+ *   pubKeyId - the ID of the public key to get. Might change in case of key rotation. 
  * 
  * Returns:
  *   The public key.
  */
-const getJWTPublicKey = (pubKeyId: number): Buffer => {
-  let publicKey = fs.readFileSync(__dirname + `/../secrets/${pubKeyId}_key.pem`); 
-  return publicKey;
+const getJWTPublicKey = (pubKeyId: string | null): Buffer | null => {
+  try {
+    return fs.readFileSync(__dirname + `/../secrets/${pubKeyId}_public_key.pem`); 
+  } catch (e) {
+    return null; 
+  }
 };  
 
 /**
@@ -68,8 +91,7 @@ const getJWTPublicKey = (pubKeyId: number): Buffer => {
  */
 export const createToken = (id: string): string => {
   let payload: JwtPayload = { 
-    sub: id,
-    pubKeyId: 1
+    sub: id
   };
 
   return jwt.sign(payload, getJWTSigningKey(1), getJWTSigningOptions());
@@ -116,13 +138,16 @@ export const verifyPassword = async (password: string, hash: string): Promise<bo
  * Returns:
  *   The decoded token, or null if the token is invalid.
  */
-export const decodeJWT = (token: string) => {
+export const decodeJWT = (token: string): Jwt | null => {
+  let verifiedJwt = null;
+
   try {
-    let decodedToken: string | JwtPayload = jwt.verify(
-      token, getJWTPublicKey(1), getJWTVerifyOptions(), 
-    );
-    return decodedToken;
-  } catch (e) {
-    return null;
-  }
+    let pubKey = getJWTPublicKey(getKIDClaim(token));
+
+    if (pubKey) {
+      verifiedJwt = jwt.verify(token, pubKey, getJWTVerifyOptions());
+    }
+  } catch (e) { }
+
+  return verifiedJwt ? <Jwt>verifiedJwt : null;
 };
