@@ -1,5 +1,3 @@
-import { v4 as uuid } from "uuid";
-
 import { hashPassword } from "../../utils/password";
 import type { PoolClient } from "pg";
 import { User } from "../../models/users";
