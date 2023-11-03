@@ -1,12 +1,15 @@
 import { v4 as uuid } from "uuid";
 import { createToken, decodeJWT, createRefreshToken } from "../utils/jwt";
-import { hashPassword, verifyPassword } from "../utils/password";
+import { verifyPassword } from "../utils/password";
 import getConnection from "../services/db/connection";
 import { handlePostgresError } from "../utils/pgErrorHandlers";
 
 import type { JwtPayload } from "jsonwebtoken";
-import type { PoolClient, QueryResult } from "pg";
+import type { PoolClient } from "pg";
 import type { Request, Response } from "express";
+import { insertRefreshToken } from "../services/queries/jwt";
+import { createUser, getUserByEmail, getUserById } from "../services/queries/users";
+import { User } from "../models/users";
 
 /**
  * Create an account for a new user with an email and password.
@@ -28,32 +31,30 @@ export const signUp = async (req: Request, res: Response) => {
   try {
     // Check if user with email already exists
     let connection: PoolClient = await getConnection();
-    let existingUserRes: QueryResult = await connection.query(
-      "SELECT * FROM users WHERE email = $1", 
-      [email]
-    );
+    let existingUserRes: User = await getUserByEmail(connection, email);
 
-    if (existingUserRes.rows.length > 0) {
+    if (existingUserRes) {
       return res.status(422).json({ error: "Email is in use" });
     }
-
-    let hashedPassword = await hashPassword(password);
     
     // Create new user
     let userId = uuid();
+    await createUser(connection, userId, email, password);
 
-    await connection.query(
-      "INSERT INTO users (id, email, password) VALUES ($1, $2, $3)", 
-      [userId, email, hashedPassword]
-    );
+    let accessToken: string = createToken(userId);
+    let refreshToken: string = createRefreshToken(userId);
+
+    // Register refresh token in the database
+    await insertRefreshToken(connection, refreshToken, userId);
 
     connection.release();
 
     return res.status(200).json({ 
-      token: createToken(userId), 
-      refreshToken: createRefreshToken(userId) 
+      token: accessToken,
+      refreshToken: refreshToken
     });
   } catch (e) {
+    console.log(e); 
     return handlePostgresError(e, res);
   }
 };
@@ -76,22 +77,17 @@ export const signIn = async (req: Request, res: Response) => {
   try {
     // Check if user with email already exists
     let connection: PoolClient = await getConnection();
-    let existingUserRes: QueryResult = await connection.query(
-      "SELECT * FROM users WHERE email = $1", 
-      [email]
-    );
+    let user: User = await getUserByEmail(connection, email);
 
-    if (existingUserRes.rows.length === 0) {
+    if (user === null) {
       return res.status(422).json({ error: "Email not found" });
     }
-
-    let user = existingUserRes.rows[0];
 
     // Check if password is correct
     let isPasswordCorrect = await verifyPassword(password, user.password);
 
     if (!isPasswordCorrect) {
-      return res.status(422).json({ error: "Invalid password" });
+      return res.status(401).json({ error: "Invalid password" });
     }
 
     connection.release();
@@ -119,7 +115,7 @@ export const signIn = async (req: Request, res: Response) => {
  *   401 - Unauthorized, the user is not logged in
  *   422 - Unprocessable Entity, the request is missing a required parameter  
  */
-export const getUserById = async (req: Request, res: Response) => {
+export const getUserRecord = async (req: Request, res: Response) => {
   let id: string = req.params.id;
   let authHeader: string | undefined = req.get("Authorization");
 
@@ -142,17 +138,14 @@ export const getUserById = async (req: Request, res: Response) => {
   try {
     // Check if user with id exists
     let connection: PoolClient = await getConnection();
-    let existingUserRes: QueryResult = await connection.query(
-      "SELECT id, email FROM users WHERE id = $1", 
-      [id]
-    );
+    let existingUserRes = await getUserById(connection, id);
 
-    if (existingUserRes.rows.length === 0) {
+    if (existingUserRes === null) {
       return res.status(422).json({ error: "User not found" });
     }
     
     connection.release();
-    return res.status(200).send(existingUserRes.rows[0]);
+    return res.status(200).send(existingUserRes);
   } catch (e) {
     return handlePostgresError(e, res);
   }

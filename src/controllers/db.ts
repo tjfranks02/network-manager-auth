@@ -2,7 +2,6 @@ import getConnection from "../services/db/connection";
 
 import type { Request, Response } from "express";
 import type { PoolClient } from "pg";
-import { randomUUID } from "crypto";
 
 export const setupDB = async (req: Request, res: Response) => {
   const createUsersTable = `
@@ -18,29 +17,28 @@ export const setupDB = async (req: Request, res: Response) => {
       id UUID NOT NULL PRIMARY KEY,
       user_id UUID NOT NULL,
       token text NOT NULL,
-      FOREIGN KEY (user_id) REFERENCES users(id)
+      date_created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `;
-
-  const createTestUser = `INSERT INTO users (id, email, password) VALUES ($1, $2, $3)`;
 
   let client: PoolClient = await getConnection();
 
   await client.query(createUsersTable);
   await client.query(createRefreshTokensTable);
-  await client.query(createTestUser, [randomUUID(), "test@test.com", "password12"]);
   client.release();
 
   return res.status(200).json({ message: "DB setup successful!" })
 };  
 
 export const deleteDB = async (req: Request, res: Response) => {
-  const dropUsersTable = `DROP TABLE users`;
+  const dropUsersTable = `DROP TABLE users CASCADE`; 
   const dropRefreshTokensTable = `DROP TABLE refresh_tokens`;
 
   let client: PoolClient = await getConnection();
   await client.query(dropUsersTable);
   await client.query(dropRefreshTokensTable);
 
+  client.release();
   return res.status(200).send({ message: "DB deleted successfully!" });
 };  
