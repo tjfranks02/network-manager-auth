@@ -20,6 +20,12 @@ import { User } from "../models/users";
  * Request params:
  *   email: string - the email of the user to create
  *   password: string - the password of the user to create
+ * 
+ * Response:
+ *   200 - Success, return the user's JWT token and a refresh token
+ *   409 - Conflict, the given email already exists
+ *   422 - Unprocessable Entity, the request is missing a required parameter
+ *   500 - Internal server error, something went wrong on the server
  */
 export const signUp = async (req: Request, res: Response) => {
   let email: string | null = req.body.email;
@@ -35,7 +41,7 @@ export const signUp = async (req: Request, res: Response) => {
     let existingUserRes: User = await getUserByEmail(connection, email);
 
     if (existingUserRes) {
-      return res.status(422).json({ error: "Email is in use" });
+      return res.status(409).json({ error: "Email is in use" });
     }
     
     // Create new user
@@ -56,7 +62,7 @@ export const signUp = async (req: Request, res: Response) => {
       refreshToken: refreshToken
     });
   } catch (e) {
-    return handlePostgresError(e, res);
+    return res.status(500).send({ error: "Internal server error." });
   }
 };
 
@@ -66,6 +72,13 @@ export const signUp = async (req: Request, res: Response) => {
  * Request params:
  *   email: string - the email of the user to sign in
  *   password: string - the password of the user to sign in
+ * 
+ * Response:
+ *   200 - Success, return the user's JWT token
+ *   401 - Unauthorized, the user's password is incorrect
+ *   422 - Unprocessable Entity, the request is missing a required parameter
+ *   409 - Conflict, the given email does not exist
+ *   500 - Internal server error, something went wrong on the server
  */
 export const signIn = async (req: Request, res: Response) => { 
   let email: string = req.body.email;
@@ -81,7 +94,7 @@ export const signIn = async (req: Request, res: Response) => {
     let user: User = await getUserByEmail(connection, email);
 
     if (user === null) {
-      return res.status(422).json({ error: "Email not found" });
+      return res.status(409).json({ error: "The given email does not exist" });
     }
 
     // Check if password is correct
@@ -104,7 +117,7 @@ export const signIn = async (req: Request, res: Response) => {
       refreshToken: refreshToken
     });
   } catch (e) {
-    return handlePostgresError(e, res);
+    return res.status(500).send({ error: "Internal server error." });
   }
 };
 
@@ -120,7 +133,9 @@ export const signIn = async (req: Request, res: Response) => {
  * Response:
  *   200 - Success, return the user's information
  *   401 - Unauthorized, the user is not logged in
- *   422 - Unprocessable Entity, the request is missing a required parameter  
+ *   422 - Unprocessable Entity, the request is missing a required parameter
+ *   409 - Conflict, the given user ID does not exist
+ *   500 - Internal server error, something went wrong on the server
  */
 export const getUserRecord = async (req: Request, res: Response) => {
   let id: string = req.params.id;
@@ -148,13 +163,13 @@ export const getUserRecord = async (req: Request, res: Response) => {
     let existingUserRes = await getUserById(connection, id);
 
     if (existingUserRes === null) {
-      return res.status(422).json({ error: "User not found" });
+      return res.status(409).json({ error: "User not found" });
     }
     
     connection.release();
     return res.status(200).send(existingUserRes);
   } catch (e) {
-    return handlePostgresError(e, res);
+    return res.status(500).send({ error: "Internal server error." });
   }
 };
 
@@ -166,7 +181,8 @@ export const getUserRecord = async (req: Request, res: Response) => {
  * 
  * Response:
  *   200 - Success, return the new JWT token
- *   401 - Unauthorized, the user is not logged in
+ *   401 - Unauthorized, the authentication given is invalid
+ *   500 - Internal server error, something went wrong on the server
  */
 export const refreshToken = async (req: Request, res: Response) => {
   let authHeader: string | undefined = req.get("Authorization");
