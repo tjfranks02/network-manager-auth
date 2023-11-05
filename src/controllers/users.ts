@@ -8,7 +8,7 @@ import { JWT_EXPIRY_TIME, REFRESH_TOKEN_EXPIRY_TIME } from "../config/tokenConfi
 import type { JwtPayload } from "jsonwebtoken";
 import type { PoolClient } from "pg";
 import type { Request, Response } from "express";
-import { insertRefreshToken } from "../services/queries/jwt";
+import { insertRefreshToken, getRefreshTokenById } from "../services/queries/refreshTokens";
 import { createUser, getUserByEmail, getUserById } from "../services/queries/users";
 import { User } from "../models/users";
 
@@ -181,13 +181,27 @@ export const refreshToken = async (req: Request, res: Response) => {
     let decodedToken: JwtPayload | null = decodeJWT(token);
 
     if (!decodedToken) {
-      return res.status(401).send({ error: "You must be logged in" });
+      return res.status(401).send({ error: "Invalid refresh token." });
     }
-    
+
+    // So we know the token is valid. We need to know if this refresh token is in the DB though.
+    let connection: PoolClient = await getConnection();
+    let refreshToken = await getRefreshTokenById(connection, decodedToken.payload.jti);
+
+    if (!refreshToken) {
+      return res.status(401).send({ error: "Invalid refresh token." });
+    }
+
+    let refreshTokenValid = await verifySecret(token, refreshToken.token);
+
+    if (!refreshTokenValid) {
+      return res.status(401).send({ error: "Refresh token not recognised." });
+    }
+
     let { token: accessToken } = createToken(decodedToken.payload.sub, JWT_EXPIRY_TIME);
 
     return res.status(200).json({ accessToken });
   } catch (e) {
-    return res.status(401).send({ error: "You must be logged in" });
+    return res.status(500).send({ error: "Internal server error." });
   }
 };

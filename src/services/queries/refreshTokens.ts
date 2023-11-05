@@ -22,3 +22,22 @@ export const insertRefreshToken = async (connection: PoolClient, jwtId: string,
     [jwtId, userId, hashedRefreshToken, new Date()]
   );
 };
+
+/**
+ * Get a refresh token from the database by its ID.
+ * 
+ * Params:
+ *   connection - the database connection to use to make the query.
+ *   jwtId - the ID of the refresh token to get.
+ * 
+ * Returns:
+ *   The refresh token. Null if no refresh token with the given ID exists.
+ */
+export const getRefreshTokenById = async (connection: PoolClient, jwtId: string | undefined) => {
+  let refreshTokenRes = await connection.query(
+    "SELECT * FROM refresh_tokens WHERE id = $1", 
+    [jwtId]
+  );
+
+  return refreshTokenRes.rowCount > 0 ? refreshTokenRes.rows[0] : null;
+};
