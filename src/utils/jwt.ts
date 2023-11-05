@@ -1,5 +1,6 @@
 import fs from "fs";
 import jwt from "jsonwebtoken";
+import { v4 as uuid } from "uuid";
 import type  { SignOptions, JwtPayload, VerifyOptions, Jwt } from "jsonwebtoken";
 
 import { JWT_EXPIRY_TIME, JWT_SIGNING_ALGO, REFRESH_TOKEN_EXPIRY_TIME } from "../config/tokenConfig";
@@ -8,26 +9,6 @@ import { JWT_EXPIRY_TIME, JWT_SIGNING_ALGO, REFRESH_TOKEN_EXPIRY_TIME } from "..
  * Get the options used to sign JWT tokens.
  */
 const getJWTSigningOptions = (): SignOptions => {
-
-//   export interface SignOptions {
-//     algorithm?: Algorithm | undefined;
-//     keyid?: string | undefined;
-//     /** expressed in seconds or a string describing a time span [zeit/ms](https://github.com/zeit/ms.js).  Eg: 60, "2 days", "10h", "7d" */
-//     expiresIn?: string | number | undefined;
-//     /** expressed in seconds or a string describing a time span [zeit/ms](https://github.com/zeit/ms.js).  Eg: 60, "2 days", "10h", "7d" */
-//     notBefore?: string | number | undefined;
-//     audience?: string | string[] | undefined;
-//     subject?: string | undefined;
-//     issuer?: string | undefined;
-//     jwtid?: string | undefined;
-//     mutatePayload?: boolean | undefined;
-//     noTimestamp?: boolean | undefined;
-//     header?: JwtHeader | undefined;
-//     encoding?: string | undefined;
-//     allowInsecureKeySizes?: boolean | undefined;
-//     allowInvalidAsymmetricKeyTypes?: boolean | undefined;
-// }
-
   let signingOptions: SignOptions = {
     algorithm: JWT_SIGNING_ALGO,
     expiresIn: JWT_EXPIRY_TIME,
@@ -105,12 +86,21 @@ export const getJWTPublicKey = (pubKeyId: string | null): Buffer | null => {
  * Returns:
  *   string - the JWT token.
  */
-export const createToken = (id: string): string => {
+export const createToken = (id: string, expiresIn: string): { jwtId: string, token: string } => {
   let payload: JwtPayload = { 
     sub: id
   };
 
-  return jwt.sign(payload, getJWTSigningKey(1), getJWTSigningOptions());
+  let jwtId: string = uuid();
+
+  let signingOptions: SignOptions = {
+    algorithm: JWT_SIGNING_ALGO,
+    expiresIn: JWT_EXPIRY_TIME,
+    keyid: "1",
+    jwtid: jwtId
+  };
+
+  return { jwtId, token: jwt.sign(payload, getJWTSigningKey(1), signingOptions) };
 };
 
 /**

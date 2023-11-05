@@ -1,4 +1,4 @@
-import { hashPassword } from "../../utils/password";
+import { hashSecret } from "../../utils/secrets";
 import type { PoolClient } from "pg";
 import { User } from "../../models/users";
 
@@ -15,7 +15,7 @@ export const createUser = async (connection: PoolClient, id: string, email: stri
   password: string) => {
 
   // Hash password
-  let hashedPassword = await hashPassword(password);
+  let hashedPassword = await hashSecret(password);
 
   // Register user in the database
   await connection.query(

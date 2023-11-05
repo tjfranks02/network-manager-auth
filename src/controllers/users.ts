@@ -1,8 +1,9 @@
 import { v4 as uuid } from "uuid";
 import { createToken, decodeJWT, createRefreshToken } from "../utils/jwt";
-import { verifyPassword } from "../utils/password";
+import { verifySecret } from "../utils/secrets";
 import getConnection from "../services/db/connection";
 import { handlePostgresError } from "../utils/pgErrorHandlers";
+import { JWT_EXPIRY_TIME, REFRESH_TOKEN_EXPIRY_TIME } from "../config/tokenConfig";
 
 import type { JwtPayload } from "jsonwebtoken";
 import type { PoolClient } from "pg";
@@ -41,11 +42,12 @@ export const signUp = async (req: Request, res: Response) => {
     let userId = uuid();
     await createUser(connection, userId, email, password);
 
-    let accessToken: string = createToken(userId);
-    let refreshToken: string = createRefreshToken(userId);
+    let { token: accessToken } = createToken(userId, JWT_EXPIRY_TIME);
+    let { jwtId: refreshTokenId, token: refreshToken } = createToken(
+      userId, REFRESH_TOKEN_EXPIRY_TIME);
 
     // Register refresh token in the database
-    await insertRefreshToken(connection, refreshToken, userId);
+    await insertRefreshToken(connection, refreshTokenId, refreshToken, userId);
 
     connection.release();
 
@@ -83,16 +85,17 @@ export const signIn = async (req: Request, res: Response) => {
     }
 
     // Check if password is correct
-    let isPasswordCorrect = await verifyPassword(password, user.password);
+    let isPasswordCorrect = await verifySecret(password, user.password);
 
     if (!isPasswordCorrect) {
       return res.status(401).json({ error: "Invalid password" });
     }
 
-    let accessToken: string = createToken(user.id);
-    let refreshToken: string = createRefreshToken(user.id);
+    let { token: accessToken } = createToken(user.id, JWT_EXPIRY_TIME);
+    let { jwtId: refreshTokenId, token: refreshToken } = createToken(
+      user.id, REFRESH_TOKEN_EXPIRY_TIME);
 
-    await insertRefreshToken(connection, refreshToken, user.id);
+    await insertRefreshToken(connection, refreshTokenId, refreshToken, user.id);
 
     connection.release();
 
@@ -180,8 +183,10 @@ export const refreshToken = async (req: Request, res: Response) => {
     if (!decodedToken) {
       return res.status(401).send({ error: "You must be logged in" });
     }
+    
+    let { token: accessToken } = createToken(decodedToken.payload.sub, JWT_EXPIRY_TIME);
 
-    return res.status(200).json({ token: createToken(decodedToken.payload.sub) });
+    return res.status(200).json({ accessToken });
   } catch (e) {
     return res.status(401).send({ error: "You must be logged in" });
   }
