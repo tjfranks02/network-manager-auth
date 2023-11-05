@@ -58,7 +58,7 @@ export const signUp = async (req: Request, res: Response) => {
     connection.release();
 
     return res.status(200).json({ 
-      token: accessToken,
+      accessToken: accessToken,
       refreshToken: refreshToken
     });
   } catch (e) {
@@ -113,7 +113,7 @@ export const signIn = async (req: Request, res: Response) => {
     connection.release();
 
     return res.status(200).json({ 
-      token: accessToken, 
+      accessToken: accessToken, 
       refreshToken: refreshToken
     });
   } catch (e) {
