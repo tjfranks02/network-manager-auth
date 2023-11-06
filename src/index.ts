@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import type { CorsOptions } from "cors";
 import { config } from "dotenv";
 
@@ -20,6 +21,7 @@ const corsOptions: CorsOptions = {
 };
 
 app.use(cors(corsOptions));
+app.use(cookieParser());
 app.use(express.json());
 app.use("/users", authRoutes);
 app.use("/db", dbRoutes);
