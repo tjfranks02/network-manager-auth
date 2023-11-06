@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import type { CorsOptions } from "cors";
 import { config } from "dotenv";
 
 // Load up .env file
@@ -13,7 +14,12 @@ import jwtRoutes from "./routes/jwtRoutes";
 const app = express();
 const port = 3000;
 
-app.use(cors());
+const corsOptions: CorsOptions = {
+  origin: "http://localhost:5173",
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use("/users", authRoutes);
 app.use("/db", dbRoutes);

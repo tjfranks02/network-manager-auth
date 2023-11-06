@@ -2,6 +2,7 @@ import fs from "fs";
 import jwt from "jsonwebtoken";
 import { v4 as uuid } from "uuid";
 import type  { SignOptions, JwtPayload, VerifyOptions, Jwt } from "jsonwebtoken";
+import type { Response, CookieOptions } from "express";
 
 import { JWT_EXPIRY_TIME, JWT_SIGNING_ALGO, REFRESH_TOKEN_EXPIRY_TIME } from "../config/tokenConfig";
 
@@ -145,4 +146,26 @@ export const decodeJWT = (token: string): Jwt | null => {
   } catch (e) { }
 
   return verifiedJwt ? <Jwt>verifiedJwt : null;
+};
+
+/**
+ * Set the refresh and access tokens returned after authenticating as a cookie on the express 
+ * response.
+ * 
+ * Params:
+ *   res - the express response object.
+ *   accessToken - the access token to set as a cookie.
+ *   refreshToken - the refresh token to set as a cookie.
+ */
+export const setAccessTokensAsCookies = (res: Response, accessToken: string, 
+  refreshToken: string) => {
+
+  let cookieConfig: CookieOptions = {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+  };
+
+  res.cookie("accessToken", accessToken, cookieConfig);
+  res.cookie("refreshToken", refreshToken, cookieConfig);
 };

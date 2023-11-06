@@ -1,8 +1,7 @@
 import { v4 as uuid } from "uuid";
-import { createToken, decodeJWT, createRefreshToken } from "../utils/jwt";
+import { createToken, decodeJWT, setAccessTokensAsCookies } from "../utils/jwt";
 import { verifySecret } from "../utils/secrets";
 import getConnection from "../services/db/connection";
-import { handlePostgresError } from "../utils/pgErrorHandlers";
 import { JWT_EXPIRY_TIME, REFRESH_TOKEN_EXPIRY_TIME } from "../config/tokenConfig";
 
 import type { JwtPayload } from "jsonwebtoken";
@@ -56,6 +55,8 @@ export const signUp = async (req: Request, res: Response) => {
     await insertRefreshToken(connection, refreshTokenId, refreshToken, userId);
 
     connection.release();
+
+    setAccessTokensAsCookies(res, accessToken, refreshToken);
 
     return res.status(200).json({ 
       accessToken: accessToken,
@@ -111,6 +112,8 @@ export const signIn = async (req: Request, res: Response) => {
     await insertRefreshToken(connection, refreshTokenId, refreshToken, user.id);
 
     connection.release();
+
+    setAccessTokensAsCookies(res, accessToken, refreshToken);
 
     return res.status(200).json({ 
       accessToken: accessToken, 
