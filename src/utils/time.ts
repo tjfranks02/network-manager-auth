@@ -14,6 +14,13 @@ export const timeStringToSeconds = (timeString: string): number => {
     return 0;
   }
 
+  console.log(timeString)
+  console.log(parseInt(match[0]))
+  console.log(parseInt(match[1]))
+  console.log(parseInt(match[2]))
+  console.log(parseInt(match[3]))
+  
+
 	return 3600 * (parseInt(match[1]) || 0)
 	       + 60 * (parseInt(match[2]) || 0)
 	       +      (parseInt(match[3]) || 0);

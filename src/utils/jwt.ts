@@ -6,7 +6,11 @@ import { timeStringToSeconds } from "./time";
 import type  { SignOptions, JwtPayload, VerifyOptions, Jwt } from "jsonwebtoken";
 import type { Response, CookieOptions } from "express";
 
-import { JWT_EXPIRY_TIME, JWT_SIGNING_ALGO, REFRESH_TOKEN_EXPIRY_TIME } from "../config/tokenConfig";
+import { 
+  JWT_EXPIRY_TIME_SECONDS, 
+  JWT_SIGNING_ALGO, 
+  REFRESH_TOKEN_EXPIRY_TIME_SECONDS 
+} from "../config/tokenConfig";
 
 /**
  * Get the options used to sign JWT tokens.
@@ -14,7 +18,7 @@ import { JWT_EXPIRY_TIME, JWT_SIGNING_ALGO, REFRESH_TOKEN_EXPIRY_TIME } from "..
 const getJWTSigningOptions = (): SignOptions => {
   let signingOptions: SignOptions = {
     algorithm: JWT_SIGNING_ALGO,
-    expiresIn: JWT_EXPIRY_TIME,
+    expiresIn: JWT_EXPIRY_TIME_SECONDS,
     keyid: "1"
   };
 
@@ -27,7 +31,7 @@ const getJWTSigningOptions = (): SignOptions => {
 const getJWTVerifyOptions = (): VerifyOptions => {
   let verifyOptions: VerifyOptions = {
     algorithms: [JWT_SIGNING_ALGO],
-    maxAge: JWT_EXPIRY_TIME,
+    maxAge: JWT_EXPIRY_TIME_SECONDS,
     complete: true
   };
 
@@ -85,11 +89,12 @@ export const getJWTPublicKey = (pubKeyId: string | null): Buffer | null => {
  * 
  * Params:
  *   id - the ID of the user to create a token for.
- * 
+ *   expiresIn - the expiry time of the token.
+ *   
  * Returns:
  *   string - the JWT token.
  */
-export const createToken = (id: string, expiresIn: string): { jwtId: string, token: string } => {
+export const createToken = (id: string, expiresIn: number): { jwtId: string, token: string } => {
   let payload: JwtPayload = { 
     sub: id
   };
@@ -98,33 +103,12 @@ export const createToken = (id: string, expiresIn: string): { jwtId: string, tok
 
   let signingOptions: SignOptions = {
     algorithm: JWT_SIGNING_ALGO,
-    expiresIn: JWT_EXPIRY_TIME,
+    expiresIn: expiresIn,
     keyid: "1",
     jwtid: jwtId
   };
 
   return { jwtId, token: jwt.sign(payload, getJWTSigningKey(1), signingOptions) };
-};
-
-/**
- * Generate JWT with a 7-day expiry time to act as a refresh token.
- * 
- * Params:
- *   id - the ID of the user to create a refresh token for.
- * 
- * Returns:
- *   string - the refresh token.
- */
-export const createRefreshToken = (id: string): string => {
-  let payload: JwtPayload = { 
-    sub: id
-  };
-
-  return jwt.sign(
-    payload, 
-    getJWTSigningKey(1), 
-    {...getJWTSigningOptions(), expiresIn: REFRESH_TOKEN_EXPIRY_TIME}
-  );
 };
 
 /**
@@ -151,32 +135,23 @@ export const decodeJWT = (token: string): Jwt | null => {
 };
 
 /**
- * Set the refresh and access tokens returned after authenticating as a cookie on the express 
- * response.
+ * Set a value as a secure, http-only cookie.
  * 
  * Params:
- *   res - the express response object.
- *   accessToken - the access token to set as a cookie.
- *   refreshToken - the refresh token to set as a cookie.
+ *   res - the response object to set the cookie on.
+ *   name - the name of the cookie.
+ *   value - the value of the cookie.
+ *   expirySeconds - the expiry time of the cookie in seconds.
  */
-export const setAccessTokensAsCookies = (res: Response, accessToken: string, 
-  refreshToken: string) => {
-
+export const setSecureCookie = (res: Response, name: string, value: string, 
+  expirySeconds: number) => {
+  
   let cookieConfig: CookieOptions = {
     httpOnly: true,
     secure: true,
     sameSite: "none",
+    maxAge: expirySeconds * 1000
   };
 
-  console.log(timeStringToSeconds(REFRESH_TOKEN_EXPIRY_TIME) * 1000)
-
-  res.cookie("accessToken", accessToken, {
-    ...cookieConfig, 
-    maxAge: timeStringToSeconds(JWT_EXPIRY_TIME) * 1000
-  });
-
-  res.cookie("refreshToken", refreshToken, {
-    ...cookieConfig,
-    maxAge: timeStringToSeconds(REFRESH_TOKEN_EXPIRY_TIME) * 1000
-  });
-};
+  res.cookie(name, value, cookieConfig);
+}

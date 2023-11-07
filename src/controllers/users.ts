@@ -1,8 +1,8 @@
 import { v4 as uuid } from "uuid";
-import { createToken, decodeJWT, setAccessTokensAsCookies } from "../utils/jwt";
+import { createToken, decodeJWT, setSecureCookie } from "../utils/jwt";
 import { verifySecret } from "../utils/secrets";
 import getConnection from "../services/db/connection";
-import { JWT_EXPIRY_TIME, REFRESH_TOKEN_EXPIRY_TIME } from "../config/tokenConfig";
+import { JWT_EXPIRY_TIME_SECONDS, REFRESH_TOKEN_EXPIRY_TIME_SECONDS } from "../config/tokenConfig";
 
 import type { JwtPayload } from "jsonwebtoken";
 import type { PoolClient } from "pg";
@@ -47,16 +47,17 @@ export const signUp = async (req: Request, res: Response) => {
     let userId = uuid();
     await createUser(connection, userId, email, password);
 
-    let { token: accessToken } = createToken(userId, JWT_EXPIRY_TIME);
+    let { token: accessToken } = createToken(userId, JWT_EXPIRY_TIME_SECONDS);
     let { jwtId: refreshTokenId, token: refreshToken } = createToken(
-      userId, REFRESH_TOKEN_EXPIRY_TIME);
+      userId, REFRESH_TOKEN_EXPIRY_TIME_SECONDS);
 
     // Register refresh token in the database
     await insertRefreshToken(connection, refreshTokenId, refreshToken, userId);
 
     connection.release();
 
-    setAccessTokensAsCookies(res, accessToken, refreshToken);
+    setSecureCookie(res, "accessToken", accessToken, JWT_EXPIRY_TIME_SECONDS);
+    setSecureCookie(res, "refreshToken", refreshToken, REFRESH_TOKEN_EXPIRY_TIME_SECONDS);
 
     return res.status(200).json({ message: "Success." });
   } catch (e) {
@@ -102,15 +103,16 @@ export const signIn = async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Invalid password" });
     }
 
-    let { token: accessToken } = createToken(user.id, JWT_EXPIRY_TIME);
+    let { token: accessToken } = createToken(user.id, JWT_EXPIRY_TIME_SECONDS);
     let { jwtId: refreshTokenId, token: refreshToken } = createToken(
-      user.id, REFRESH_TOKEN_EXPIRY_TIME);
+      user.id, REFRESH_TOKEN_EXPIRY_TIME_SECONDS);
 
     await insertRefreshToken(connection, refreshTokenId, refreshToken, user.id);
 
     connection.release();
 
-    setAccessTokensAsCookies(res, accessToken, refreshToken);
+    setSecureCookie(res, "accessToken", accessToken, JWT_EXPIRY_TIME_SECONDS);
+    setSecureCookie(res, "refreshToken", refreshToken, REFRESH_TOKEN_EXPIRY_TIME_SECONDS);
 
     return res.status(200).json({ 
       accessToken: accessToken, 
@@ -187,15 +189,14 @@ export const getUserRecord = async (req: Request, res: Response) => {
  */
 export const refreshToken = async (req: Request, res: Response) => {
   let authHeader: string | undefined = req.get("Authorization");
+  let accessToken: string = req.cookies["accessToken"];
 
-  if (!authHeader) {
+  if (!accessToken) {
     return res.status(401).send({ error: "You must be logged in" });
   }
 
-  let token = authHeader.split(" ")[1];
-
   try {
-    let decodedToken: JwtPayload | null = decodeJWT(token);
+    let decodedToken: JwtPayload | null = decodeJWT(accessToken);
 
     if (!decodedToken) {
       return res.status(401).send({ error: "Invalid refresh token." });
@@ -209,15 +210,16 @@ export const refreshToken = async (req: Request, res: Response) => {
       return res.status(401).send({ error: "Invalid refresh token." });
     }
 
-    let refreshTokenValid = await verifySecret(token, refreshToken.token);
+    let refreshTokenValid = await verifySecret(accessToken, refreshToken.token);
 
     if (!refreshTokenValid) {
       return res.status(401).send({ error: "Refresh token not recognised." });
     }
 
-    let { token: accessToken } = createToken(decodedToken.payload.sub, JWT_EXPIRY_TIME);
+    let { token: newAccessToken } = createToken(decodedToken.payload.sub, JWT_EXPIRY_TIME_SECONDS);
+    setSecureCookie(res, "accessToken", newAccessToken, JWT_EXPIRY_TIME_SECONDS);
 
-    return res.status(200).json({ accessToken });
+    return res.status(200).json({ message: "Success." });
   } catch (e) {
     return res.status(500).send({ error: "Internal server error." });
   }
