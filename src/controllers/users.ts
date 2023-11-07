@@ -188,15 +188,14 @@ export const getUserRecord = async (req: Request, res: Response) => {
  *   500 - Internal server error, something went wrong on the server
  */
 export const refreshToken = async (req: Request, res: Response) => {
-  let authHeader: string | undefined = req.get("Authorization");
-  let accessToken: string = req.cookies["accessToken"];
+  let refreshToken: string = req.cookies["refreshToken"];
 
-  if (!accessToken) {
+  if (!refreshToken) {
     return res.status(401).send({ error: "You must be logged in" });
   }
 
   try {
-    let decodedToken: JwtPayload | null = decodeJWT(accessToken);
+    let decodedToken: JwtPayload | null = decodeJWT(refreshToken);
 
     if (!decodedToken) {
       return res.status(401).send({ error: "Invalid refresh token." });
@@ -204,13 +203,13 @@ export const refreshToken = async (req: Request, res: Response) => {
 
     // So we know the token is valid. We need to know if this refresh token is in the DB though.
     let connection: PoolClient = await getConnection();
-    let refreshToken = await getRefreshTokenById(connection, decodedToken.payload.jti);
+    let existingRefreshToken = await getRefreshTokenById(connection, decodedToken.payload.jti);
 
-    if (!refreshToken) {
+    if (!existingRefreshToken) {
       return res.status(401).send({ error: "Invalid refresh token." });
     }
 
-    let refreshTokenValid = await verifySecret(accessToken, refreshToken.token);
+    let refreshTokenValid = await verifySecret(refreshToken, existingRefreshToken.token);
 
     if (!refreshTokenValid) {
       return res.status(401).send({ error: "Refresh token not recognised." });
