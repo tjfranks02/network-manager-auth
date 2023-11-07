@@ -58,10 +58,7 @@ export const signUp = async (req: Request, res: Response) => {
 
     setAccessTokensAsCookies(res, accessToken, refreshToken);
 
-    return res.status(200).json({ 
-      accessToken: accessToken,
-      refreshToken: refreshToken
-    });
+    return res.status(200).json({ message: "Success." });
   } catch (e) {
     return res.status(500).send({ error: "Internal server error." });
   }
@@ -142,9 +139,11 @@ export const signIn = async (req: Request, res: Response) => {
  */
 export const getUserRecord = async (req: Request, res: Response) => {
   let id: string = req.params.id;
-  let authHeader: string | undefined = req.get("Authorization");
+  let accessToken = req.cookies["accessToken"];
 
-  if (!authHeader) {
+  console.log(req.cookies);
+
+  if (!accessToken) {
     return res.status(401).send({ error: "You must be logged in" });
   }
 
@@ -152,9 +151,8 @@ export const getUserRecord = async (req: Request, res: Response) => {
     return res.status(422).send({ error: "You must provide a user id" });
   }
 
-  // Extract and decode token
-  let token = authHeader.split(" ")[1];
-  let decodedToken: JwtPayload | null = decodeJWT(token);
+  // Decode token
+  let decodedToken: JwtPayload | null = decodeJWT(accessToken);
 
   if (!decodedToken || id !== decodedToken.payload.sub) {
     return res.status(401).send({ error: "You must be logged in" });

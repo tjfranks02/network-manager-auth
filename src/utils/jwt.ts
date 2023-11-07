@@ -1,6 +1,8 @@
 import fs from "fs";
 import jwt from "jsonwebtoken";
 import { v4 as uuid } from "uuid";
+import { timeStringToSeconds } from "./time";
+
 import type  { SignOptions, JwtPayload, VerifyOptions, Jwt } from "jsonwebtoken";
 import type { Response, CookieOptions } from "express";
 
@@ -166,6 +168,15 @@ export const setAccessTokensAsCookies = (res: Response, accessToken: string,
     sameSite: "none",
   };
 
-  res.cookie("accessToken", accessToken, cookieConfig);
-  res.cookie("refreshToken", refreshToken, cookieConfig);
+  console.log(timeStringToSeconds(REFRESH_TOKEN_EXPIRY_TIME) * 1000)
+
+  res.cookie("accessToken", accessToken, {
+    ...cookieConfig, 
+    maxAge: timeStringToSeconds(JWT_EXPIRY_TIME) * 1000
+  });
+
+  res.cookie("refreshToken", refreshToken, {
+    ...cookieConfig,
+    maxAge: timeStringToSeconds(REFRESH_TOKEN_EXPIRY_TIME) * 1000
+  });
 };
