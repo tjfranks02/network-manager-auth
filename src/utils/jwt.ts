@@ -1,15 +1,13 @@
 import fs from "fs";
 import jwt from "jsonwebtoken";
 import { v4 as uuid } from "uuid";
-import { timeStringToSeconds } from "./time";
 
 import type  { SignOptions, JwtPayload, VerifyOptions, Jwt } from "jsonwebtoken";
 import type { Response, CookieOptions } from "express";
 
 import { 
   JWT_EXPIRY_TIME_SECONDS, 
-  JWT_SIGNING_ALGO, 
-  REFRESH_TOKEN_EXPIRY_TIME_SECONDS 
+  JWT_SIGNING_ALGO 
 } from "../config/tokenConfig";
 
 /**
