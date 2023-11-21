@@ -1,5 +1,5 @@
 import { v4 as uuid } from "uuid";
-import { createToken, decodeJWT, setSecureCookie } from "../utils/jwt";
+import { createToken, decodeJWT } from "../utils/jwt";
 import { verifySecret } from "../utils/secrets";
 import getConnection from "../services/db/connection";
 import { JWT_EXPIRY_TIME_SECONDS, REFRESH_TOKEN_EXPIRY_TIME_SECONDS } from "../config/tokenConfig";
@@ -56,10 +56,10 @@ export const signUp = async (req: Request, res: Response) => {
 
     connection.release();
 
-    setSecureCookie(res, "accessToken", accessToken, JWT_EXPIRY_TIME_SECONDS);
-    setSecureCookie(res, "refreshToken", refreshToken, REFRESH_TOKEN_EXPIRY_TIME_SECONDS);
-
-    return res.status(200).json({ message: "Success." });
+    return res.status(200).json({
+      accessToken: accessToken,
+      refreshToken: refreshToken
+    });
   } catch (e) {
     return res.status(500).send({ error: "Internal server error." });
   }
@@ -110,9 +110,6 @@ export const signIn = async (req: Request, res: Response) => {
     await insertRefreshToken(connection, refreshTokenId, refreshToken, user.id);
 
     connection.release();
-
-    setSecureCookie(res, "accessToken", accessToken, JWT_EXPIRY_TIME_SECONDS);
-    setSecureCookie(res, "refreshToken", refreshToken, REFRESH_TOKEN_EXPIRY_TIME_SECONDS);
 
     return res.status(200).json({ 
       accessToken: accessToken, 
@@ -216,9 +213,10 @@ export const refreshToken = async (req: Request, res: Response) => {
     }
 
     let { token: newAccessToken } = createToken(decodedToken.payload.sub, JWT_EXPIRY_TIME_SECONDS);
-    setSecureCookie(res, "accessToken", newAccessToken, JWT_EXPIRY_TIME_SECONDS);
 
-    return res.status(200).json({ message: "Success." });
+    return res.status(200).json({
+      accessToken: newAccessToken
+    });
   } catch (e) {
     return res.status(500).send({ error: "Internal server error." });
   }
