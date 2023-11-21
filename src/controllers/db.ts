@@ -23,7 +23,7 @@ export const setupDB = async (req: Request, res: Response) => {
   `;
 
   let client: PoolClient = await getConnection();
-
+    
   await client.query(createUsersTable);
   await client.query(createRefreshTokensTable);
   client.release();

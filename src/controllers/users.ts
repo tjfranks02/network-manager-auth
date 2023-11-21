@@ -138,9 +138,8 @@ export const signIn = async (req: Request, res: Response) => {
  */
 export const getUserRecord = async (req: Request, res: Response) => {
   let id: string = req.params.id;
-  let accessToken = req.cookies["accessToken"];
 
-  console.log(req.cookies);
+  let accessToken: string = req.headers["authorization"]?.split(" ")[1] || "";
 
   if (!accessToken) {
     return res.status(401).send({ error: "You must be logged in" });
@@ -185,7 +184,7 @@ export const getUserRecord = async (req: Request, res: Response) => {
  *   500 - Internal server error, something went wrong on the server
  */
 export const refreshToken = async (req: Request, res: Response) => {
-  let refreshToken: string = req.cookies["refreshToken"];
+  let refreshToken: string = req.headers["authorization"]?.split(" ")[1] || "";
 
   if (!refreshToken) {
     return res.status(401).send({ error: "You must be logged in" });
